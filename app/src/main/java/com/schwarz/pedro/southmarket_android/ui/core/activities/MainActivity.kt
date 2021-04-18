@@ -1,125 +1,50 @@
 package com.schwarz.pedro.southmarket_android.ui.core.activities
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupActionBarWithNavController
 import com.schwarz.pedro.southmarket_android.R
-import kotlinx.android.synthetic.main.activity_main.*
-import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import com.schwarz.pedro.southmarket_android.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-    private var imageCapture: ImageCapture? = null
 
-    private lateinit var outputDirectory: File
-    private lateinit var cameraExecutor: ExecutorService
+    private val controller by lazy { findNavController(R.id.root_host) }
+
+    private val appBarConfiguration by lazy {
+        AppBarConfiguration.Builder(
+            R.id.authFragment,
+            R.id.productsListFragment
+        )
+            .build()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Request camera permissions
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
-            )
-        }
+        setupActionBarWithNavController(controller, appBarConfiguration)
 
-        // Set up the listener for take photo button
-        camera_capture_button.setOnClickListener { takePhoto() }
-
-        outputDirectory = getOutputDirectory()
-
-        cameraExecutor = Executors.newSingleThreadExecutor()
+        val valid = intent.extras?.getBoolean(VALID_TOKEN) ?: false
+        setupStartDestination(valid)
     }
 
-    private fun takePhoto() {}
+    private fun setupStartDestination(valid: Boolean) {
+        controller.popBackStack()
 
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
-        cameraProviderFuture.addListener({
-            // Used to bind the lifecycle of cameras to the lifecycle owner
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-            // Preview
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(viewFinder.surfaceProvider)
-                }
-
-            // Select back camera as a default
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            try {
-                // Unbind use cases before rebinding
-                cameraProvider.unbindAll()
-
-                // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview)
-
-            } catch(exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
-
-        }, ContextCompat.getMainExecutor(this))
+        if (!valid)
+            controller.navigate(R.id.productsListFragment)
+        else
+            controller.navigate(R.id.authFragment)
     }
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            baseContext, it
-        ) == PackageManager.PERMISSION_GRANTED
+    override fun onSupportNavigateUp(): Boolean {
+        return controller.navigateUp() || super.onSupportNavigateUp()
     }
 
-    private fun getOutputDirectory(): File {
-        val mediaDir = externalMediaDirs.firstOrNull()?.let {
-            File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
-        }
-        return if (mediaDir != null && mediaDir.exists())
-            mediaDir else filesDir
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                startCamera()
-            } else {
-                Toast.makeText(this,
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
-    }
-
-    companion object {
-        private const val TAG = "CameraXBasic"
-        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private const val REQUEST_CODE_PERMISSIONS = 10
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+    private companion object {
+        private const val VALID_TOKEN = "validToken"
     }
 }

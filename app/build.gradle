@@ -3,7 +3,6 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-kapt'
     id 'androidx.navigation.safeargs.kotlin'
-    id 'kotlin-android-extensions'
 }
 
 android {
@@ -33,8 +32,8 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-    dataBinding {
-        enabled = true
+    buildFeatures {
+        dataBinding true
     }
 }
 
@@ -45,6 +44,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.3.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
@@ -94,5 +94,8 @@ dependencies {
     // CameraX Lifecycle Library
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
     // CameraX View class
-    implementation "androidx.camera:camera-view:1.0.0-alpha23"
+    implementation "androidx.camera:camera-view:1.0.0-alpha14"
+
+    // DataStore
+    implementation "androidx.datastore:datastore-preferences:1.0.0-alpha08"
 }
